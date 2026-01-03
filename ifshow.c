@@ -13,6 +13,7 @@ int get_prefix_length(struct sockaddr *netmask)
 
     if (netmask->sa_family == AF_INET) {
 
+        //pointeur vers la valeur du masque de sous réseau sous forme d'unsigned char *  (car fait 1 octet)
         bytes = (unsigned char *)
                 &((struct sockaddr_in *)netmask)->sin_addr;
 
@@ -25,7 +26,7 @@ int get_prefix_length(struct sockaddr *netmask)
         }
     }
     else if (netmask->sa_family == AF_INET6) {
-
+        //pointeur vers la valeur du masque de sous réseau sous forme d'unsigned char *  (car fait 1 octet)
         bytes = (unsigned char *)
                 &((struct sockaddr_in6 *)netmask)->sin6_addr;
 
@@ -42,7 +43,7 @@ int get_prefix_length(struct sockaddr *netmask)
 }
 
 
-void to_string_ipv4(struct sockaddr_in *addr)
+void to_string_ipv4(const char *ifname, struct sockaddr_in *addr, struct sockaddr *netmask)
 {
     char ip_string[INET_ADDRSTRLEN];
 
@@ -52,10 +53,13 @@ void to_string_ipv4(struct sockaddr_in *addr)
         ip_string,
         INET_ADDRSTRLEN
     );
+    int prefix = 0;
+    if (netmask != NULL)
+        prefix = get_prefix_length(netmask);
 
-    printf("%s\n", ip_string);
+    printf("%s %s/%d\n", ifname, ip_string, prefix);
 }
-void to_string_ipv6(struct sockaddr_in6 *addr)
+void to_string_ipv6(const char *ifname, struct sockaddr_in6 *addr, struct sockaddr *netmask)
 {
     char ip_string[INET6_ADDRSTRLEN];
 
@@ -65,8 +69,10 @@ void to_string_ipv6(struct sockaddr_in6 *addr)
         ip_string,
         INET6_ADDRSTRLEN
     );
-
-    printf("%s\n", ip_string);
+    int prefix = 0;
+    if (netmask != NULL)
+        prefix = get_prefix_length(netmask);
+    printf("%s %s/%d\n", ifname, ip_string, prefix);
 }
 
 void show_all_interfaces(void)
@@ -84,12 +90,10 @@ void show_all_interfaces(void)
         if (ifa->ifa_addr != NULL) {
 
             if (ifa->ifa_addr->sa_family == AF_INET) {
-                printf("%s IPv4: ", ifa->ifa_name);
-                to_string_ipv4((struct sockaddr_in *)ifa->ifa_addr);
+                to_string_ipv4(ifa->ifa_name, (struct sockaddr_in *)ifa->ifa_addr, ifa->ifa_netmask);
             }
             else if (ifa->ifa_addr->sa_family == AF_INET6) {
-                printf("%s IPv6: ", ifa->ifa_name);
-                to_string_ipv6((struct sockaddr_in6 *)ifa->ifa_addr);
+                to_string_ipv6(ifa->ifa_name, (struct sockaddr_in6 *)ifa->ifa_addr, ifa->ifa_netmask);
             }
         }
 
@@ -103,6 +107,7 @@ void show_one_interface(const char *ifname)
 {
     struct ifaddrs *ifaddr;
     struct ifaddrs *ifa;
+    int found = 0;
 
     if (getifaddrs(&ifaddr) == -1) {
         return;
@@ -114,14 +119,12 @@ void show_one_interface(const char *ifname)
         if (ifa->ifa_addr != NULL) {
 
             if (strcmp(ifa->ifa_name, ifname) == 0) {
-
+                found=1;
                 if (ifa->ifa_addr->sa_family == AF_INET) {
-                    printf("%s IPv4: ", ifa->ifa_name);
-                    to_string_ipv4((struct sockaddr_in *)ifa->ifa_addr);
+                    to_string_ipv4(ifa->ifa_name, (struct sockaddr_in *)ifa->ifa_addr, ifa->ifa_netmask);
                 }
                 else if (ifa->ifa_addr->sa_family == AF_INET6) {
-                    printf("%s IPv6: ", ifa->ifa_name);
-                    to_string_ipv6((struct sockaddr_in6 *)ifa->ifa_addr);
+                    to_string_ipv6(ifa->ifa_name, (struct sockaddr_in6 *)ifa->ifa_addr, ifa->ifa_netmask);
                 }
             }
         }
@@ -129,6 +132,9 @@ void show_one_interface(const char *ifname)
         ifa = ifa->ifa_next;
     }
 
+    if (!found) {
+        printf("Interface '%s' introuvable\n", ifname);
+    }
     freeifaddrs(ifaddr);
 }
 
