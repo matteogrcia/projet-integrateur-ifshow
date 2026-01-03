@@ -15,3 +15,16 @@ void to_string_ipv4(struct sockaddr_in *addr)
 
     printf("%s\n", ip_string);
 }
+void to_string_ipv6(struct sockaddr_in6 *addr)
+{
+    char ip_string[INET6_ADDRSTRLEN];
+
+    inet_ntop(
+        AF_INET6,
+        &(addr->sin6_addr),
+        ip_string,
+        INET6_ADDRSTRLEN
+    );
+
+    printf("%s\n", ip_string);
+}
