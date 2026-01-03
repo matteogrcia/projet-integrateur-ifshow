@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <arpa/inet.h>
+#include <ifaddrs.h>
 #include <netinet/in.h>
 
 void to_string_ipv4(struct sockaddr_in *addr)
@@ -27,4 +28,34 @@ void to_string_ipv6(struct sockaddr_in6 *addr)
     );
 
     printf("%s\n", ip_string);
+}
+
+void show_all_interfaces(void)
+{
+    struct ifaddrs *ifaddr;
+    struct ifaddrs *ifa;
+
+    if (getifaddrs(&ifaddr) == -1) {
+        return;
+    }
+
+    ifa = ifaddr;
+    while (ifa != NULL) {
+
+        if (ifa->ifa_addr != NULL) {
+
+            if (ifa->ifa_addr->sa_family == AF_INET) {
+                printf("%s IPv4: ", ifa->ifa_name);
+                to_string_ipv4((struct sockaddr_in *)ifa->ifa_addr);
+            }
+            else if (ifa->ifa_addr->sa_family == AF_INET6) {
+                printf("%s IPv6: ", ifa->ifa_name);
+                to_string_ipv6((struct sockaddr_in6 *)ifa->ifa_addr);
+            }
+        }
+
+        ifa = ifa->ifa_next;
+    }
+
+    freeifaddrs(ifaddr);
 }
