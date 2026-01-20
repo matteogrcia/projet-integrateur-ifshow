@@ -12,8 +12,6 @@ int get_prefix_length(struct sockaddr *netmask)
     int i;
 
     if (netmask->sa_family == AF_INET) {
-
-        //pointeur vers la valeur du masque de sous réseau sous forme d'unsigned char *  (car fait 1 octet)
         bytes = (unsigned char *)
                 &((struct sockaddr_in *)netmask)->sin_addr;
 
@@ -26,7 +24,6 @@ int get_prefix_length(struct sockaddr *netmask)
         }
     }
     else if (netmask->sa_family == AF_INET6) {
-        //pointeur vers la valeur du masque de sous réseau sous forme d'unsigned char *  (car fait 1 octet)
         bytes = (unsigned char *)
                 &((struct sockaddr_in6 *)netmask)->sin6_addr;
 
@@ -42,8 +39,8 @@ int get_prefix_length(struct sockaddr *netmask)
     return count;
 }
 
-
-void to_string_ipv4(const char *ifname, struct sockaddr_in *addr, struct sockaddr *netmask)
+/* MODIFICATION : Ajout de numSortie pour rediriger l'affichage vers l'écran (1) ou le réseau */
+void to_string_ipv4(const char *ifname, struct sockaddr_in *addr, struct sockaddr *netmask, int numSortie)
 {
     char ip_string[INET_ADDRSTRLEN];
 
@@ -57,9 +54,12 @@ void to_string_ipv4(const char *ifname, struct sockaddr_in *addr, struct sockadd
     if (netmask != NULL)
         prefix = get_prefix_length(netmask);
 
-    printf("%s %s/%d\n", ifname, ip_string, prefix);
+    /* Remplacement de printf par dprintf vers numSortie */
+    dprintf(numSortie, "%s %s/%d\n", ifname, ip_string, prefix);
 }
-void to_string_ipv6(const char *ifname, struct sockaddr_in6 *addr, struct sockaddr *netmask)
+
+/* MODIFICATION : Ajout de numSortie */
+void to_string_ipv6(const char *ifname, struct sockaddr_in6 *addr, struct sockaddr *netmask, int numSortie)
 {
     char ip_string[INET6_ADDRSTRLEN];
 
@@ -72,10 +72,13 @@ void to_string_ipv6(const char *ifname, struct sockaddr_in6 *addr, struct sockad
     int prefix = 0;
     if (netmask != NULL)
         prefix = get_prefix_length(netmask);
-    printf("%s %s/%d\n", ifname, ip_string, prefix);
+
+    /* Remplacement de printf par dprintf vers numSortie */
+    dprintf(numSortie, "%s %s/%d\n", ifname, ip_string, prefix);
 }
 
-void show_all_interfaces(void)
+/* MODIFICATION : La fonction reçoit numSortie et le transmet aux fonctions to_string */
+void show_all_interfaces(int numSortie)
 {
     struct ifaddrs *ifaddr;
     struct ifaddrs *ifa;
@@ -90,10 +93,10 @@ void show_all_interfaces(void)
         if (ifa->ifa_addr != NULL) {
 
             if (ifa->ifa_addr->sa_family == AF_INET) {
-                to_string_ipv4(ifa->ifa_name, (struct sockaddr_in *)ifa->ifa_addr, ifa->ifa_netmask);
+                to_string_ipv4(ifa->ifa_name, (struct sockaddr_in *)ifa->ifa_addr, ifa->ifa_netmask, numSortie);
             }
             else if (ifa->ifa_addr->sa_family == AF_INET6) {
-                to_string_ipv6(ifa->ifa_name, (struct sockaddr_in6 *)ifa->ifa_addr, ifa->ifa_netmask);
+                to_string_ipv6(ifa->ifa_name, (struct sockaddr_in6 *)ifa->ifa_addr, ifa->ifa_netmask, numSortie);
             }
         }
 
@@ -103,7 +106,8 @@ void show_all_interfaces(void)
     freeifaddrs(ifaddr);
 }
 
-void show_one_interface(const char *ifname)
+/* MODIFICATION : La fonction reçoit numSortie */
+void show_one_interface(const char *ifname, int numSortie)
 {
     struct ifaddrs *ifaddr;
     struct ifaddrs *ifa;
@@ -121,10 +125,10 @@ void show_one_interface(const char *ifname)
             if (strcmp(ifa->ifa_name, ifname) == 0) {
                 found=1;
                 if (ifa->ifa_addr->sa_family == AF_INET) {
-                    to_string_ipv4(ifa->ifa_name, (struct sockaddr_in *)ifa->ifa_addr, ifa->ifa_netmask);
+                    to_string_ipv4(ifa->ifa_name, (struct sockaddr_in *)ifa->ifa_addr, ifa->ifa_netmask, numSortie);
                 }
                 else if (ifa->ifa_addr->sa_family == AF_INET6) {
-                    to_string_ipv6(ifa->ifa_name, (struct sockaddr_in6 *)ifa->ifa_addr, ifa->ifa_netmask);
+                    to_string_ipv6(ifa->ifa_name, (struct sockaddr_in6 *)ifa->ifa_addr, ifa->ifa_netmask, numSortie);
                 }
             }
         }
@@ -133,24 +137,29 @@ void show_one_interface(const char *ifname)
     }
 
     if (!found) {
-        printf("Interface '%s' introuvable\n", ifname);
+        /* Envoi du message d'erreur vers la sortie choisie */
+        dprintf(numSortie, "Interface '%s' introuvable\n", ifname);
     }
     freeifaddrs(ifaddr);
 }
 
 
+/* MODIFICATION : On protège le main pour qu'il ne soit compilé que pour l'outil local (gcc -DEXECUTABLE_IFSHOW ifshow.c -o ifshow) */
+#ifdef EXECUTABLE_IFSHOW
 int main(int argc, char *argv[])
 {
+    /* 1 représente la sortie standard */
     if (argc == 2 && strcmp(argv[1], "-a") == 0) {
-        show_all_interfaces();
+        show_all_interfaces(1);
     }
     else if (argc == 3 && strcmp(argv[1], "-i") == 0) {
-        show_one_interface(argv[2]);
+        show_one_interface(argv[2], 1);
     }
     else {
-        printf("Erreur lors de l'exécution");
+        fprintf(stderr, "Erreur lors de l'exécution\n");
         return 1;
     }
 
     return 0;
 }
+#endif

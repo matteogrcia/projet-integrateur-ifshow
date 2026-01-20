@@ -3,4 +3,5 @@ project(ifshow C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(ifshow ifshow.c)
+add_executable(ifshow ifshow.c
+)

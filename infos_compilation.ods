@@ -1,0 +1,5 @@
+Étape,Ce qu'on compile,Commande,Résultat
+1,ifshow (Solo),gcc -DEXECUTABLE_IFSHOW ifshow.c -o ifshow,Binaire 1 (Outil local)
+2,ifshow (Objet),gcc -c ifshow.c -o ifshow.o,"Un fichier ""pièce détachée"""
+3,agent,gcc agent.c ifshow.o -o agent,Binaire 2 (Le serveur)
+4,ifnetshow,gcc ifnetshow.c -o ifnetshow,Binaire 3 (Le client)
